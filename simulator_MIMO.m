@@ -43,17 +43,21 @@ function BER = simulator_MIMO(P)
         end
        
         % distribute symbols on users and antennas
-        SymUsers = reshape(symbols, P.CDMAUsers, [], P.Ntx);
+        % SymUsers = reshape(symbols, RX, [], P.Ntx);
+        len = length(bits_encoded(1,:))/P.Ntx;
+        SymUsers = zeros(RX, len, P.Ntx);
+        for tx_antenna=1:P.Ntx
+            SymUsers(:, :, tx_antenna) = symbols(:, 1+(tx_antenna-1)*len:tx_antenna*len);
+        end
             
         % multiply hadamard on each antenna
-        
         for tx_antenna=1:P.Ntx
             txsymbols(tx_antenna, :, :) = SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
         end
     
         % definition of the Barker
         NumberOfChips  = length(txsymbols(:))/P.Ntx;          % per Frame
-        PNSequence     = genbarker(NumberOfChips);      % -(2*step(GS)-1);
+        PNSequence     = genbarker(NumberOfChips);              % -(2*step(GS)-1);
     
         % Channel
         switch P.ChannelType
@@ -147,7 +151,7 @@ function BER = simulator_MIMO(P)
         end
     end
 
-    BER = Results/(NumberOfBits*P.CDMAUsers*P.NumberOfFrames);
+    BER = Results/(P.Ntx*NumberOfBits*P.CDMAUsers*P.NumberOfFrames);
 end
 
 function seq = genbarker(len)
