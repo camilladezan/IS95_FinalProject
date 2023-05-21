@@ -1,4 +1,4 @@
-function s_hat = ZF_Detector(H, y, Pn_dB, Constellations)
+function s_hat = ZF_Detector(H, y, Constellations)
 % Zero Forcing Detector
 %   - for flat channel H and receive vector y
 %   - slicing / quantization to constellations
