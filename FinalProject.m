@@ -6,6 +6,7 @@
 % EPFL
 clear all, close all, clc
 
+%% Part 1 - IS95 implementation
 % Parameters
 P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 172;
@@ -42,3 +43,10 @@ ylabel('BER','FontSize',12,'FontWeight','bold');
 %xlim([min(P.SNRRange) max(P.SNRRange)]);
 grid minor;
 legend('-DynamicLegend');
+
+
+%% Part 2 - MIMO extension of the standard
+
+% definition of number of transmitting and receiving antennas
+P.Ntx = 2; 
+P.Nrx = 2;
