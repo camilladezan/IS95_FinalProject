@@ -119,6 +119,7 @@ for ii = 1:P.NumberOfFrames
                     end
                     mrc = 1/norm(himp(usr,:))^2*conj(himp(usr,1:finger))*rx_symb_finger;
                     mrc = real(mrc);
+                    
                     % convolutional decoder
                     rxbits_encoded = step(convDec, mrc');
                     rxbits(usr, :) = rxbits_encoded(1:end-(P.KConvDecoder-1));

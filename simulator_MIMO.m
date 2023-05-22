@@ -57,8 +57,8 @@ function BER = simulator_MIMO(P)
     
         % definition of the Barker
         NumberOfChips  = length(txsymbols(:))/P.Ntx;          % per Frame
-        PNSequence     = genbarker(NumberOfChips);              % -(2*step(GS)-1);
-    
+        PNSequence     = genbarker(NumberOfChips);            % -(2*step(GS)-1);
+
         % Channel
         switch P.ChannelType
             case 'Multipath'
@@ -73,6 +73,8 @@ function BER = simulator_MIMO(P)
             txsymbols_tmp = txsymbols(tx_antenna, :, :);
             waveform(tx_antenna, :) = txsymbols_tmp(:).*PNSequence;
         end
+        
+     
     
         % reshape to add multi RX antenna suppport
         waveform  = reshape(waveform, P.Ntx, NumberOfChips);
@@ -87,6 +89,7 @@ function BER = simulator_MIMO(P)
         end
     
         %%%
+        
         % Simulation
         snoise = ( randn(P.Nrx*P.RakeFingers,NumberOfChipsRX,RX) + 1i* randn(P.Nrx*P.RakeFingers,NumberOfChipsRX,RX) );
 
@@ -109,7 +112,6 @@ function BER = simulator_MIMO(P)
             end
 
             % Receiver
-            
             switch P.ReceiverType
                 case 'Rake'
                     FrameLength = NumberOfChipsRX;
@@ -153,6 +155,7 @@ function BER = simulator_MIMO(P)
 
     BER = Results/(P.Ntx*NumberOfBits*P.CDMAUsers*P.NumberOfFrames);
 end
+
 
 function seq = genbarker(len)
     BarkerSeq = [+1 +1 +1 +1 +1 -1 -1 +1 +1 -1 +1 -1 +1];
