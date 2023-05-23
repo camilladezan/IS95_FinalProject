@@ -52,7 +52,7 @@ function BER = simulator_MIMO(P)
             
         % multiply hadamard on each antenna
         for tx_antenna=1:P.Ntx
-            txsymbols(tx_antenna, :, :) = SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
+            txsymbols(:, :, tx_antenna) = SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
         end
     
         % definition of the Barker
@@ -70,7 +70,7 @@ function BER = simulator_MIMO(P)
         
         % apply Barker code
         for tx_antenna=1:P.Ntx
-            txsymbols_tmp = txsymbols(tx_antenna, :, :);
+            txsymbols_tmp = txsymbols(:, :, tx_antenna);
             waveform(tx_antenna, :) = txsymbols_tmp(:).*PNSequence;
         end
         
@@ -83,7 +83,7 @@ function BER = simulator_MIMO(P)
         % Channel
         switch P.ChannelType
             case 'MIMO'
-                H = sqrt(1/2)*randn(P.Nrx * P.RakeFingers, P.Ntx)+sqrt(-1/2)*randn(P.Nrx * P.RakeFingers, P.Ntx);
+                H = sqrt(1/2)*randn(P.RakeFingers, P.Nrx, P.Ntx)+sqrt(-1/2)*randn(P.RakeFingers, P.Nrx, P.Ntx);
             otherwise
                 disp('Channel not supported')
         end
@@ -91,7 +91,7 @@ function BER = simulator_MIMO(P)
         %%%
         
         % Simulation
-        snoise = ( randn(P.Nrx*P.RakeFingers,NumberOfChipsRX,RX) + 1i* randn(P.Nrx*P.RakeFingers,NumberOfChipsRX,RX) );
+        snoise = ( randn(P.Nrx,NumberOfChipsRX,RX) + 1i* randn(P.Nrx,NumberOfChipsRX,RX) );
 
         % SNR Range
         for ss = 1:length(P.SNRRange)
@@ -102,11 +102,10 @@ function BER = simulator_MIMO(P)
             % Channel
             switch P.ChannelType
                 case 'MIMO'
-                    x_afterchannel = zeros(P.Nrx*P.RakeFingers, NumberOfChipsRX, RX);
-                    for idx=1:P.CDMAUsers
-                        x_afterchannel(:, :, idx) = H*mwaveform(:, :, idx);
-                    end
-                    y = x_afterchannel + noise;
+%                     for usr=1:P.CDMAUsers
+%                         y_hat = H*mwaveform(:,:,usr);
+%                     end
+                    y = H*mwaveform + noise;
                 otherwise
                     disp('Channel not supported')
             end
@@ -116,33 +115,32 @@ function BER = simulator_MIMO(P)
                 case 'Rake'
                     FrameLength = NumberOfChipsRX;
                     rxbits = zeros(P.CDMAUsers,P.NumberOfSymbols);
-                    for usr = 1:P.CDMAUsers
-                        rx_symb_finger = zeros(P.Nrx*P.RakeFingers,(P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
-                        for rx_antenna=1:P.Nrx*P.RakeFingers
-                            y_bark = y(rx_antenna,1:1+FrameLength-1,usr).*PNSequence.';
-                            rx_symb = reshape(y_bark,SeqLen,[]);
-                            rx_symb_finger(rx_antenna, :) = SpreadSequence(:,usr).'*rx_symb;
+                    for rx_antenna = 1:P.Nrx
+                        for usr = 1:P.CDMAUsers
+                            rx_symb_finger = zeros(P.ChannelLength, (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
+                            for finger = 1:min(P.RakeFingers,P.ChannelLength)
+                                y_bark = y(rx_antenna,finger:finger+FrameLength-1,usr).*PNSequence.';
+                                rx_symb = reshape(y_bark,SeqLen,[]);
+                                rx_symb_finger(finger, :) = SpreadSequence(:,usr).'*rx_symb;
+                            end
                         end
-                        %mrc = 1/norm(himp(usr,:))^2*conj(himp(usr,1:finger))*rx_symb_finger;
-                        %mrc = real(mrc);
-                        switch P.MIMOdetector
-                            case 'ZF'
-                                s_hat = ZF_Detector(H, rx_symb_finger, P.Constellation);
-                                s_hat = mexde2bi(s_hat(:), P.Modulation);
-                            case 'SIC'
-                                s_hat = SIC_Detector(H, rx_symb_finger, P.Constellation);
-                                s_hat = mexde2bi(s_hat(:), P.Modulation);
-                            case 'MMSE'
-                                s_hat = MMSE_Detector(H, rx_symb_finger, P.Constellation);
-                                s_hat = mexde2bi(s_hat(:), P.Modulation);
-                            otherwise
-                                disp('Receiver not supported')
-                        end
-                        % convolutional decoder
-                        rxbits_encoded = step(convDec, s_hat);
-                        rxbits(usr, :) = rxbits_encoded(1:end-(P.KConvDecoder-1));
-
                     end
+                    switch P.MIMOdetector
+                        case 'ZF'
+                            s_hat = ZF_Detector(H, squeeze(rx_symb_finger), P.Constellation);
+                            s_hat = mexde2bi(s_hat(:), P.Modulation);
+                        case 'SIC'
+                            s_hat = SIC_Detector(H, rx_symb_finger, P.Constellation);
+                            s_hat = mexde2bi(s_hat(:), P.Modulation);
+                        case 'MMSE'
+                            s_hat = MMSE_Detector(H, rx_symb_finger, P.Constellation);
+                            s_hat = mexde2bi(s_hat(:), P.Modulation);
+                        otherwise
+                            disp('Receiver not supported')
+                    end
+                    % convolutional decoder
+                    rxbits_encoded = step(convDec, s_hat);
+                    rxbits(usr, :) = rxbits_encoded(1:end-(P.KConvDecoder-1));
                 otherwise
                     disp('Source Encoding not supported')
             end
