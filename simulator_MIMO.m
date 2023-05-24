@@ -22,8 +22,8 @@ SeqLen         = P.HamLen;
 NumberOfBits   = P.NumberOfSymbols*P.Modulation; % per user
 
 % definition of the Barker
-NumberOfChips  = (P.NumberOfSymbols*P.Modulation + P.KConvDecoder -1)*SeqLen;          % per Frame
-PNSequence     = genbarker(NumberOfChips);            % -(2*step(GS)-1);
+NumberOfChips  = (P.NumberOfSymbols*P.Modulation + P.KConvDecoder -1)*SeqLen;           % per Frame
+PNSequence     = genPNsequence(NumberOfChips);                                          % -(2*step(GS)-1);
 
 % Channel
 switch P.ChannelType
@@ -71,19 +71,7 @@ for ii = 1:P.NumberOfFrames
         waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
     end
 
-
-    % apply Barker code
-%     for tx_antenna=1:P.Ntx
-%         txsymbols_tmp = txsymbols(:, :, tx_antenna);
-%         waveform(tx_antenna, :) = txsymbols_tmp(:).*PNSequence;
-%     end
-
-
-
-    % reshape to add multi RX antenna suppport
-    % waveform  = reshape(waveform, P.Ntx, NumberOfChips);
-    % mwaveform = repmat(waveform,[1 1 RX]);
-
+    
     % Channel
     switch P.ChannelType
         case 'MIMO'
@@ -173,7 +161,7 @@ end
 
 
 % Function to generate the PN sequence 
-function seq = genbarker(len)
+function seq = genPNsequence(len)
 
 pnseq = comm.PNSequence('Polynomial',[42 35 33 31 27 26 25 22 21 19 18 17 16 10 7 6 5 3 2 1 0], ...
     'Mask',[1 1 0 0 0 1 1 0 0 0 randi([0,1], 1,32)], 'InitialConditions', ...
