@@ -10,8 +10,8 @@ Hi = (H'*H)\H';
 % spatial ZF equalization
 y_hat = (Hi*y).';
 
-s_hat = real(y_hat(:)) < 0;
-s_hat = double(s_hat);
+% s_hat = real(y_hat(:)) < 0;
+s_hat = real(y_hat(:));
 
 end
 

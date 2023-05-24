@@ -21,17 +21,30 @@ SeqLen         = P.HamLen;
 
 NumberOfBits   = P.NumberOfSymbols*P.Modulation; % per user
 
+% definition of the Barker
+NumberOfChips  = (P.NumberOfSymbols*P.Modulation + P.KConvDecoder -1)*SeqLen;          % per Frame
+PNSequence     = genbarker(NumberOfChips);            % -(2*step(GS)-1);
+
+% Channel
+switch P.ChannelType
+    case 'MIMO'
+        NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
+    otherwise
+        NumberOfChipsRX = NumberOfChips;
+end
+
 Results = zeros(1,length(P.SNRRange));
 
 for ii = 1:P.NumberOfFrames
 
     ii
 
-    bits = randi([0 1],RX,NumberOfBits); % Random Data
+    bits = randi([0 1], NumberOfBits, RX); % Random Data
 
     % Encode data with convolutional encoded
+    bits_encoded = zeros(P.ConvEncRate*(NumberOfBits+P.KConvDecoder-1), RX);
     for kk=1:RX
-        bits_encoded(kk,:) = step(convEnc, bits(kk,:)');
+        bits_encoded(:, kk) = step(convEnc, bits(:, kk));
     end
 
     % Modulation
@@ -43,35 +56,27 @@ for ii = 1:P.NumberOfFrames
     end
 
     % distribute symbols on users and antennas
-    len = length(bits_encoded(1,:))/P.Ntx;
+    len = length(bits_encoded(:, 1))/P.Ntx;
     SymUsers = zeros(RX, len, P.Ntx);
     for tx_antenna=1:P.Ntx
-        SymUsers(:, :, tx_antenna) = symbols(:, 1+(tx_antenna-1)*len:tx_antenna*len);
+        SymUsers(:, :, tx_antenna) = symbols(1+(tx_antenna-1)*len:tx_antenna*len, :)';
     end
-
-    % multiply hadamard on each antenna
+    
+    waveform = zeros(NumberOfChips, P.Ntx);
     for tx_antenna=1:P.Ntx
-        txsymbols(:, :, tx_antenna) = SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
-    end
-
-    % definition of the Barker
-    NumberOfChips  = length(txsymbols(:))/P.Ntx;          % per Frame
-    PNSequence     = genbarker(NumberOfChips);            % -(2*step(GS)-1);
-
-    % Channel
-    switch P.ChannelType
-        case 'MIMO'
-            NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
-        otherwise
-            NumberOfChipsRX = NumberOfChips;
+        % multiply hadamard on each antenna
+        txsymbols_tmp= SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
+        
+        % apply Barker code
+        waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
     end
 
 
     % apply Barker code
-    for tx_antenna=1:P.Ntx
-        txsymbols_tmp = txsymbols(:, :, tx_antenna);
-        waveform(tx_antenna, :) = txsymbols_tmp(:).*PNSequence;
-    end
+%     for tx_antenna=1:P.Ntx
+%         txsymbols_tmp = txsymbols(:, :, tx_antenna);
+%         waveform(tx_antenna, :) = txsymbols_tmp(:).*PNSequence;
+%     end
 
 
 
@@ -107,11 +112,11 @@ for ii = 1:P.NumberOfFrames
                 for i = 1:RX
                     for rx_antenna = 1:P.Nrx
                         for tx_antenna = 1:P.Ntx
-                            y(:, rx_antenna, i) = y(:, rx_antenna, i) + conv(waveform(tx_antenna,:), squeeze(H(rx_antenna, tx_antenna, :, i)));
+                            y(:, rx_antenna, i) = y(:, rx_antenna, i) + conv(waveform(:, tx_antenna), squeeze(H(rx_antenna, tx_antenna, :, i)));
                         end
                     end
                 end
-                % y = y + noise;
+                y = y + noise;
             otherwise
                 disp('Channel not supported')
         end
@@ -120,7 +125,8 @@ for ii = 1:P.NumberOfFrames
         switch P.ReceiverType
             case 'Rake'
                 FrameLength = NumberOfChips;
-                rxbits = zeros(P.CDMAUsers,P.NumberOfSymbols);
+                rxbits = zeros(P.NumberOfSymbols, RX);
+
                 for usr = 1:P.CDMAUsers
                     for rx_antenna = 1:P.Nrx
                         rx_symb_finger = zeros(P.Nrx * min(P.ChannelLength, P.RakeFingers), (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
@@ -148,8 +154,8 @@ for ii = 1:P.NumberOfFrames
                             disp('Receiver not supported')
                     end
                     % convolutional decoder
-                    rxbits_encoded = step(convDec, s_hat(:));
-                    rxbits(usr, :) = rxbits_encoded(1:end-(P.KConvDecoder-1));
+                    rxbits_decoded = step(convDec, s_hat(:));
+                    rxbits(:, usr) = rxbits_decoded(1:end-(P.KConvDecoder-1));
                 end
             otherwise
                 disp('Source Encoding not supported')
