@@ -61,7 +61,7 @@ function BER = simulator_MIMO(P)
 
         % Channel
         switch P.ChannelType
-            case 'Multipath'
+            case 'MIMO'
                 NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
             otherwise
                 NumberOfChipsRX = NumberOfChips;
@@ -83,7 +83,7 @@ function BER = simulator_MIMO(P)
         % Channel
         switch P.ChannelType
             case 'MIMO'
-                H = sqrt(1/2)*randn(P.RakeFingers, P.Nrx, P.Ntx)+sqrt(-1/2)*randn(P.RakeFingers, P.Nrx, P.Ntx);
+                H = sqrt(1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength)+sqrt(-1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength);
             otherwise
                 disp('Channel not supported')
         end
@@ -102,10 +102,15 @@ function BER = simulator_MIMO(P)
             % Channel
             switch P.ChannelType
                 case 'MIMO'
-%                     for usr=1:P.CDMAUsers
-%                         y_hat = H*mwaveform(:,:,usr);
-%                     end
-                    y = H*mwaveform + noise;
+                    y = zeros(P.Nrx, NumberOfChipsRX, RX);
+                    for rx_antenna = 1:P.Nrx
+                        for tx_antenna = 1:P.Ntx
+                            for i = 1:RX
+                                y(rx_antenna,:,i) = y(rx_antenna,:,i) + conv(mwaveform(tx_antenna,:,i), squeeze(H(rx_antenna, tx_antenna, :)).');
+                            end
+                        end 
+                    end
+                    y = y + noise;
                 otherwise
                     disp('Channel not supported')
             end
@@ -117,23 +122,39 @@ function BER = simulator_MIMO(P)
                     rxbits = zeros(P.CDMAUsers,P.NumberOfSymbols);
                     for rx_antenna = 1:P.Nrx
                         for usr = 1:P.CDMAUsers
-                            rx_symb_finger = zeros(P.ChannelLength, (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
+                            rx_symb_finger = zeros(P.Nrx, P.ChannelLength, (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
                             for finger = 1:min(P.RakeFingers,P.ChannelLength)
                                 y_bark = y(rx_antenna,finger:finger+FrameLength-1,usr).*PNSequence.';
                                 rx_symb = reshape(y_bark,SeqLen,[]);
-                                rx_symb_finger(finger, :) = SpreadSequence(:,usr).'*rx_symb;
+                                rx_symb_finger(P.Nrx, finger, :) = SpreadSequence(:,usr).'*rx_symb;
                             end
                         end
                     end
-                    switch P.MIMOdetector
+                    % reshape the rx_symb_finger and the channel matrix to have an easier detector
+                    % structure
+                    rx_symbols = zeros(P.Nrx*P.ChannelLength, (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
+                    for i = 1:min(P.RakeFingers,P.ChannelLength)
+                        rx_symbols(1+(i-1)*P.Nrx:i*P.Nrx, :) = rx_symb_finger(:, i, :);
+                    end
+                    H_reshaped = zeros(P.Nrx*P.ChannelLength, P.Ntx);
+                    for i = 1:P.Ntx
+                        for j = 1:P.Nrx
+                            H_reshaped(1+(j-1)*P.ChannelLength:j*P.ChannelLength, i) = H(j, i, :);
+                        end
+                    end
+                    % scale constellation power
+                    const_power=(norm(P.Constellation)^2)/2^P.Modulation;
+                    scaling=sqrt(1/const_power);
+                    P.Constellation=P.Constellation*scaling*sqrt(1/P.Ntx);
+                    switch P.MIMOdetector 
                         case 'ZF'
-                            s_hat = ZF_Detector(H, squeeze(rx_symb_finger), P.Constellation);
+                            s_hat = ZF_Detector(H, rx_symbols, P.Constellation);
                             s_hat = mexde2bi(s_hat(:), P.Modulation);
                         case 'SIC'
-                            s_hat = SIC_Detector(H, rx_symb_finger, P.Constellation);
+                            s_hat = SIC_Detector(H, rx_symbols, P.Constellation);
                             s_hat = mexde2bi(s_hat(:), P.Modulation);
                         case 'MMSE'
-                            s_hat = MMSE_Detector(H, rx_symb_finger, P.Constellation);
+                            s_hat = MMSE_Detector(H, rx_symbols, P.Constellation);
                             s_hat = mexde2bi(s_hat(:), P.Modulation);
                         otherwise
                             disp('Receiver not supported')

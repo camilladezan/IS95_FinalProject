@@ -57,7 +57,7 @@ P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 4;
+P.CDMAUsers     = 1;
 
 P.Modulation    = 1;        % 1: BPSK
 P.Constellation = [1 -1];
