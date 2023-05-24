@@ -1,4 +1,4 @@
-function sHat = SIC_Detector(H, y, Pn_dB, constellations)
+function sHat = SIC_Detector(H, y, constellations)
 % SIC_DETECTOR_BIASED - SIC detector. Performes a SIC detection.
 %    [sHat, complexity] = SIC_Detector(H, y, Pn_dB, Constellations)
 %    
@@ -18,7 +18,6 @@ function sHat = SIC_Detector(H, y, Pn_dB, constellations)
 % noise and channel dimensions extraction
 nRx = size(H,1);
 nTx = size(H,2);
-sigma = dB2lin(Pn_dB);
 
 sHat = zeros(nTx,1);
 sIdx = zeros(nTx,1);
