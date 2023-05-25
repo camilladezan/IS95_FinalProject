@@ -91,7 +91,7 @@ for ii = 1:P.NumberOfFrames
     for ss = 1:length(P.SNRRange)
         SNRdb  = P.SNRRange(ss);
         SNRlin = 10^(SNRdb/10);
-        noise  = 1/sqrt(2*SeqLen*SNRlin) *snoise;
+        noise  = 1/sqrt(2*SeqLen*SNRlin) * snoise;
 
         y = zeros(NumberOfChipsRX, P.Nrx, RX);
         % Channel
@@ -133,10 +133,12 @@ for ii = 1:P.NumberOfFrames
                             s_hat = ZF_Detector(H_user, rx_symbols);
                         case 'SIC'
                             H_user = squeeze(H_MIMO(:,:,usr));
-                            s_hat = SIC_Detector(H_user, rx_symbols);
+                            s_hat = SIC_Detector(H_user, rx_symbols, P.Constellation);
                         case 'MMSE'
+                            % compute noise power
+                            Pn = 1/SeqLen*SNRlin;
                             H_user = squeeze(H_MIMO(:,:,usr));
-                            s_hat = MMSE_Detector(H_user, rx_symbols, Pn_dB, P.Constellation);
+                            s_hat = MMSE_Detector_Biased(H_user, rx_symbols, Pn);
                             
                         otherwise
                             disp('Receiver not supported')

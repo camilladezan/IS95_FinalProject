@@ -16,8 +16,9 @@ P.CDMAUsers     = 4;
 
 P.Modulation    = 1;        % 1: BPSK
 
-P.ChannelType   = 'Multipath';      % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
-P.ChannelLength = 3;                % increase it for multipath
+P.ChannelType   = 'Fading';         % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
+P.ChannelLength = 1;                % increase it for multipath
+P.CoherenceTime = 100;             
 
 P.KConvDecoder = 9;     % parameter K for the Viterbi decoder, linked to the traceback depth
 P.ConvEncRate = 2;      % inverse of the rate of the convolutional encoder
@@ -47,7 +48,7 @@ legend('-DynamicLegend');
 
 
 %% Part 2 - MIMO extension of the standard
-close all, clear all, clc
+clear, clc
 
 % add path for the mex directory
 addpath mex;
@@ -73,14 +74,14 @@ P.HamLen = 64;          % Length of Hadamard Sequence
 P.SNRRange = -30:2:10; % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 3;
+P.RakeFingers = 4;
 
 % definition of number of transmitting and receiving antennas
 P.Ntx = 2; 
 P.Nrx = 2;
 
 % definition of the MIMO receiver
-P.MIMOdetector = 'ZF'; %ZF, SIC, MMSE
+P.MIMOdetector = 'SIC'; %ZF, SIC, MMSE
 
 BER = simulator_MIMO(P);
 
