@@ -9,14 +9,14 @@ clear all, close all, clc
 %% Part 1 - IS95 implementation
 % Parameters
 P.NumberOfFrames      = 1000;
-P.NumberOfSymbols     = 125;
+P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 4;
+P.CDMAUsers     = 1;
 
 P.Modulation    = 1;        % 1: BPSK
 
-P.ChannelType   = 'Fading';         % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
+P.ChannelType   = 'Multipath';         % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
 P.ChannelLength = 1;                % increase it for multipath
 P.CoherenceTime = 100;             
 
@@ -25,10 +25,10 @@ P.ConvEncRate = 2;      % inverse of the rate of the convolutional encoder
 P.poly = [753 561];     % polynomial for Viterbi decoder
 P.HamLen = 64;          % Length of Hadamard Sequence
 
-P.SNRRange = -15:2:10; % SNR Range to simulate in dB
+P.SNRRange = -30:2:10; % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 5;
+P.RakeFingers = 1;
 
 BER = simulator(P); % simulator_coded_CDMA()/simulator_MIMO_coded_CDMA()....
 % write simulators as matlab functions in separate files
@@ -36,7 +36,6 @@ BER = simulator(P); % simulator_coded_CDMA()/simulator_MIMO_coded_CDMA()....
 simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.CDMAUsers);
 
 
-hold on
 figure(1)
 semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab)
 
@@ -50,21 +49,18 @@ legend('-DynamicLegend');
 %% Part 2 - MIMO extension of the standard
 clear, clc
 
-% add path for the mex directory
-addpath mex;
-
 % Parameters
 P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 125;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 4;
+P.CDMAUsers     = 1;
 
 P.Modulation    = 1;        % 1: BPSK
 P.Constellation = [1 -1];
 
 P.ChannelType   = 'MIMO';      % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
-P.ChannelLength = 3;                % increase it for multipath
+P.ChannelLength = 1;                % increase it for multipath
 
 P.KConvDecoder = 9;     % parameter K for the Viterbi decoder, linked to the traceback depth
 P.ConvEncRate = 2;      % inverse of the rate of the convolutional encoder
@@ -74,20 +70,19 @@ P.HamLen = 64;          % Length of Hadamard Sequence
 P.SNRRange = -30:2:10; % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 4;
+P.RakeFingers = 1;
 
 % definition of number of transmitting and receiving antennas
 P.Ntx = 2; 
 P.Nrx = 2;
 
 % definition of the MIMO receiver
-P.MIMOdetector = 'SIC'; %ZF, SIC, MMSE
+P.MIMOdetector = 'ZF'; %ZF, SIC, MMSE
 
 BER = simulator_MIMO(P);
 
 simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.CDMAUsers);
 
-hold on
 figure(2)
 semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab)
 

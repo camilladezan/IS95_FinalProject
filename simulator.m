@@ -27,7 +27,7 @@ for ii = 1:P.NumberOfFrames
 
     ii
 
-    bits = randi([0 1],RX,NumberOfBits); % Random Data
+    bits = randi([0 1],RX, NumberOfBits); % Random Data
 
     % Encode data with convolutional encoded
     for kk=1:RX
@@ -122,15 +122,17 @@ for ii = 1:P.NumberOfFrames
                         rx_symb_finger(finger,:) = SpreadSequence(:,usr).'*rx_symb;
                     end
 
-                    if P.ChannelType == 'Fading'
-                        himp = squeeze(himp);
+                    switch P.ChannelType 
+                        case 'Fading'
+                            himp = squeeze(himp);
                     end
 
                     mrc = 1/norm(himp(usr,:))^2*conj(himp(usr,1:finger))*rx_symb_finger;
                     mrc = real(mrc);
 
-                    if P.ChannelType == 'Fading'
-                        himp = reshape(himp, 1, size(himp, 1), size(himp, 2));
+                    switch P.ChannelType 
+                        case 'Fading'
+                            himp = reshape(himp, 1, size(himp, 1), size(himp, 2));
                     end
 
                     % convolutional decoder
@@ -155,10 +157,11 @@ end
 % Function to generate the PN sequence
 function seq = genPNsequence(len)
 
-pnseq = comm.PNSequence('Polynomial',[42 35 33 31 27 26 25 22 21 19 18 17 16 10 7 6 5 3 2 1 0], ...
-    'Mask',[1 1 0 0 0 1 1 0 0 0 randi([0,1], 1,32)], 'InitialConditions', ...
-    [zeros(1,41) 1], 'SamplesPerFrame', len);
+    BarkerSeq = [+1 +1 +1 +1 +1 -1 -1 +1 +1 -1 +1 -1 +1];
 
-seq = pnseq();
+    factor = ceil(len/length(BarkerSeq));
+    b = repmat(BarkerSeq,1,factor);
+    b = BarkerSeq.'*ones(1,factor);
+    seq = b(1:len).';
 
 end

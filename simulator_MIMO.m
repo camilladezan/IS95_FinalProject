@@ -19,19 +19,7 @@ SpreadSequence = HadamardMatrix;
 
 SeqLen         = P.HamLen;
 
-NumberOfBits   = P.NumberOfSymbols*P.Modulation; % per user
-
-% definition of the Barker
-NumberOfChips  = (P.NumberOfSymbols*P.Modulation + P.KConvDecoder -1)*SeqLen;           % per Frame
-PNSequence     = genPNsequence(NumberOfChips);                                          % -(2*step(GS)-1);
-
-% Channel
-switch P.ChannelType
-    case 'MIMO'
-        NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
-    otherwise
-        NumberOfChipsRX = NumberOfChips;
-end
+NumberOfBits   = P.NumberOfSymbols*P.Modulation*P.Ntx;        % per user
 
 Results = zeros(1,length(P.SNRRange));
 
@@ -55,13 +43,17 @@ for ii = 1:P.NumberOfFrames
             disp('Modulation not supported')
     end
 
-    % distribute symbols on users and antennas
-    len = length(bits_encoded(:, 1))/P.Ntx;
+    % distribute bits on antennas
+    len = length(symbols)/P.Ntx;
     SymUsers = zeros(RX, len, P.Ntx);
-    for tx_antenna=1:P.Ntx
+    for tx_antenna = 1:P.Ntx
         SymUsers(:, :, tx_antenna) = symbols(1+(tx_antenna-1)*len:tx_antenna*len, :)';
     end
-    
+
+    % definition of the Barker
+    NumberOfChips  = length(SymUsers(:,:,1))*P.HamLen;           % per Frame
+    PNSequence     = genPNsequence(NumberOfChips);               % -(2*step(GS)-1);
+
     waveform = zeros(NumberOfChips, P.Ntx);
     for tx_antenna=1:P.Ntx
         % multiply hadamard on each antenna
@@ -71,13 +63,20 @@ for ii = 1:P.NumberOfFrames
         waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
     end
 
-    
+    % Channel
+    switch P.ChannelType
+        case 'MIMO'
+            NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
+        otherwise
+            NumberOfChipsRX = NumberOfChips;
+    end
+
+     
     % Channel
     switch P.ChannelType
         case 'MIMO'
             H = sqrt(1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength, RX) + sqrt(-1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength, RX);
-            H_P = permute(H, [3 1 2 4]);
-            H_MIMO = reshape(H_P, [], size(H_P,3), size(H_P,4));
+            H_MIMO = channel_reshape(H, P);
         otherwise
             disp('Channel not supported')
     end
@@ -113,11 +112,11 @@ for ii = 1:P.NumberOfFrames
         switch P.ReceiverType
             case 'Rake'
                 FrameLength = NumberOfChips;
-                rxbits = zeros(P.NumberOfSymbols, RX);
+                rxbits = zeros(NumberOfBits, RX);
 
                 for usr = 1:P.CDMAUsers
                     for rx_antenna = 1:P.Nrx
-                        rx_symb_finger = zeros(P.Nrx * min(P.ChannelLength, P.RakeFingers), (P.NumberOfSymbols*P.ConvEncRate+P.ConvEncRate*(P.KConvDecoder-1))/P.Ntx);
+                        rx_symb_finger = zeros(P.Nrx * min(P.ChannelLength, P.RakeFingers), FrameLength/P.HamLen);
                         for finger = 1:min(P.RakeFingers,P.ChannelLength)
                             y_bark = y(finger:finger+FrameLength-1, rx_antenna, usr).*PNSequence;
                             rx_symb = reshape(y_bark,SeqLen,[]);
@@ -133,7 +132,7 @@ for ii = 1:P.NumberOfFrames
                             s_hat = ZF_Detector(H_user, rx_symbols);
                         case 'SIC'
                             H_user = squeeze(H_MIMO(:,:,usr));
-                            s_hat = SIC_Detector(H_user, rx_symbols, P.Constellation);
+                            s_hat = SIC_Detector(H_user, rx_symbols);
                         case 'MMSE'
                             % compute noise power
                             Pn = 1/SeqLen*SNRlin;
@@ -165,11 +164,12 @@ end
 % Function to generate the PN sequence 
 function seq = genPNsequence(len)
 
-pnseq = comm.PNSequence('Polynomial',[42 35 33 31 27 26 25 22 21 19 18 17 16 10 7 6 5 3 2 1 0], ...
-    'Mask',[1 1 0 0 0 1 1 0 0 0 randi([0,1], 1,32)], 'InitialConditions', ...
-    [zeros(1,41) 1], 'SamplesPerFrame', len);
+    BarkerSeq = [+1 +1 +1 +1 +1 -1 -1 +1 +1 -1 +1 -1 +1];
 
-seq = pnseq();
+    factor = ceil(len/length(BarkerSeq));
+    b = repmat(BarkerSeq,1,factor);
+    b = BarkerSeq.'*ones(1,factor);
+    seq = b(1:len).';
 
 end
 
