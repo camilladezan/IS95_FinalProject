@@ -30,7 +30,8 @@ for ii = 1:P.NumberOfFrames
     bits = randi([0 1], NumberOfBits, RX); % Random Data
 
     % Encode data with convolutional encoded
-    bits_encoded = zeros(P.ConvEncRate*(NumberOfBits+P.KConvDecoder-1), RX);
+    NumberOfEncodedBits = P.ConvEncRate*(NumberOfBits+P.KConvDecoder-1);
+    bits_encoded = zeros(NumberOfEncodedBits, RX);
     for kk=1:RX
         bits_encoded(:, kk) = step(convEnc, bits(:, kk));
     end
@@ -45,23 +46,27 @@ for ii = 1:P.NumberOfFrames
 
     % distribute bits on antennas
     len = length(symbols)/P.Ntx;
-    SymUsers = zeros(RX, len, P.Ntx);
+    SymUsers = zeros(len, RX, P.Ntx);
     for tx_antenna = 1:P.Ntx
-        SymUsers(:, :, tx_antenna) = symbols(1+(tx_antenna-1)*len:tx_antenna*len, :)';
+        SymUsers(:, :, tx_antenna) = symbols(1+(tx_antenna-1)*len:tx_antenna*len, :);
     end
 
     % definition of the Barker
-    NumberOfChips  = length(SymUsers(:,:,1))*P.HamLen;           % per Frame
-    PNSequence     = genPNsequence(NumberOfChips);               % -(2*step(GS)-1);
+    NumberOfChips  = len*P.HamLen;                                  % per Frame
+    PNSequence     = genPNsequence(NumberOfChips);                  % -(2*step(GS)-1);
 
     waveform = zeros(NumberOfChips, P.Ntx);
     for tx_antenna=1:P.Ntx
         % multiply hadamard on each antenna
-        txsymbols_tmp= SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna);
+        txsymbols_tmp= SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna).';
         
         % apply Barker code
         waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
     end
+
+    % reshape to add multi RX antenna suppport
+    waveform  = reshape(waveform, NumberOfChips, P.Ntx);
+    mwaveform = repmat(waveform,[1 1 RX]);
 
     % Channel
     switch P.ChannelType
@@ -99,7 +104,7 @@ for ii = 1:P.NumberOfFrames
                 for i = 1:RX
                     for rx_antenna = 1:P.Nrx
                         for tx_antenna = 1:P.Ntx
-                            y(:, rx_antenna, i) = y(:, rx_antenna, i) + conv(waveform(:, tx_antenna), squeeze(H(rx_antenna, tx_antenna, :, i)));
+                            y(:, rx_antenna, i) = y(:, rx_antenna, i) + conv(mwaveform(:, tx_antenna, i), squeeze(H(rx_antenna, tx_antenna, :, i)));
                         end
                     end
                 end
@@ -113,10 +118,10 @@ for ii = 1:P.NumberOfFrames
             case 'Rake'
                 FrameLength = NumberOfChips;
                 rxbits = zeros(NumberOfBits, RX);
+                rx_symb_finger = zeros(P.Nrx*min(P.ChannelLength, P.RakeFingers), FrameLength/P.HamLen);
 
                 for usr = 1:P.CDMAUsers
                     for rx_antenna = 1:P.Nrx
-                        rx_symb_finger = zeros(P.Nrx * min(P.ChannelLength, P.RakeFingers), FrameLength/P.HamLen);
                         for finger = 1:min(P.RakeFingers,P.ChannelLength)
                             y_bark = y(finger:finger+FrameLength-1, rx_antenna, usr).*PNSequence;
                             rx_symb = reshape(y_bark,SeqLen,[]);
@@ -135,7 +140,7 @@ for ii = 1:P.NumberOfFrames
                             s_hat = SIC_Detector(H_user, rx_symbols);
                         case 'MMSE'
                             % compute noise power
-                            Pn = 1/SeqLen*SNRlin;
+                            Pn = 1/(SeqLen*SNRlin);
                             H_user = squeeze(H_MIMO(:,:,usr));
                             s_hat = MMSE_Detector_Biased(H_user, rx_symbols, Pn);
                             
