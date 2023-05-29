@@ -10,6 +10,7 @@ Hi = (H'*H)\H';
 % spatial ZF equalization
 y_hat = (Hi*y).';
 
+% slicing / quantization to constellations
 s_hat = real(y_hat(:));
 
 end

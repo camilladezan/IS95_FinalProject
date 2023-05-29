@@ -20,22 +20,16 @@ sHat = zeros(nTx, n_sym);
 
 Htmp = H;
 ytmp = y;
+
 for kk = nTx:-1:1
-  %G = (Htmp'*Htmp)\Htmp';
-  G = pinv(Htmp);
-  sTilde = G(kk, :)*ytmp;
-  
-  plot(sTilde, '.')
-  % symbol detection
+  G = (Htmp'*Htmp)\Htmp';
+  sTilde = G(kk,:)*ytmp;
+
   sHat(kk, :) = real(sTilde);
-  
-  % interference cancellation
-  ytmp = ytmp - Htmp(:, kk)*sHat(kk,:);
+
+  ytmp = ytmp - Htmp(:, kk)*sHat(kk);
   Htmp = Htmp(:,1:kk-1);
 end
 
 
-sHat = real(sHat(:));
-
 end
-

@@ -19,7 +19,7 @@ SpreadSequence = HadamardMatrix;
 
 SeqLen         = P.HamLen;
 
-NumberOfBits   = P.NumberOfSymbols*P.Modulation*P.Ntx;        % per user
+NumberOfBits   = P.NumberOfSymbols*P.Modulation;        % per user
 
 Results = zeros(1,length(P.SNRRange));
 
@@ -44,42 +44,42 @@ for ii = 1:P.NumberOfFrames
             disp('Modulation not supported')
     end
 
-    % distribute bits on antennas
-    len = length(symbols)/P.Ntx;
-    SymUsers = zeros(len, RX, P.Ntx);
-    for tx_antenna = 1:P.Ntx
-        SymUsers(:, :, tx_antenna) = symbols(1+(tx_antenna-1)*len:tx_antenna*len, :);
-    end
+    % distribute symbols on users
+    SymUsers = symbols;
+
+    % multiply hadamard
+    txsymbols = SpreadSequence(:,1:RX) * SymUsers.';
 
     % definition of the Barker
-    NumberOfChips  = len*P.HamLen;                                  % per Frame
-    PNSequence     = genPNsequence(NumberOfChips);                  % -(2*step(GS)-1);
-
-    waveform = zeros(NumberOfChips, P.Ntx);
-    for tx_antenna=1:P.Ntx
-        % multiply hadamard on each antenna
-        txsymbols_tmp= SpreadSequence(:,1:RX) * SymUsers(:, :, tx_antenna).';
-        
-        % apply Barker code
-        waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
-    end
-
-    % reshape to add multi RX antenna suppport
-    waveform  = reshape(waveform, NumberOfChips, P.Ntx);
-    mwaveform = repmat(waveform,[1 1 RX]);
+    NumberOfChips  = length(txsymbols(:));          % per Frame
+    PNSequence     = genPNsequence(NumberOfChips);      % -(2*step(GS)-1);
 
     % Channel
     switch P.ChannelType
-        case 'MIMO'
+        case 'Multipath'
             NumberOfChipsRX   = NumberOfChips+P.ChannelLength-1;
         otherwise
             NumberOfChipsRX = NumberOfChips;
     end
 
+
+    % apply Barker code
+    waveform = txsymbols(:).*PNSequence;
+
+    % reshape to add multi RX antenna suppport
+    waveform  = reshape(waveform,NumberOfChips, 1);
+    mwaveform = repmat(waveform,[1 P.Ntx RX]);
+
      
     % Channel
     switch P.ChannelType
-        case 'MIMO'
+        case 'PassThrough'
+            H = ones(P.Nrx, P.Ntx, RX);
+            H_MIMO = H;
+        case 'AWGN'
+            H = ones(P.Nrx, P.Ntx, RX);
+            H_MIMO = H;
+        case 'Multipath'
             H = sqrt(1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength, RX) + sqrt(-1/2)*randn(P.Nrx, P.Ntx, P.ChannelLength, RX);
             H_MIMO = channel_reshape(H, P);
         otherwise
@@ -100,7 +100,16 @@ for ii = 1:P.NumberOfFrames
         y = zeros(NumberOfChipsRX, P.Nrx, RX);
         % Channel
         switch P.ChannelType
-            case 'MIMO'
+            case 'PassThrough'
+                for i =1:RX
+                    y(:, :, i) = (H(:,:,i)*mwaveform(:,:,i).').';
+                end
+            case 'AWGN'
+                for i =1:RX
+                    y(:, :, i) = (H(:,:,i)*mwaveform(:,:,i).').';
+                end
+                y = y + noise;
+            case 'Multipath'
                 for i = 1:RX
                     for rx_antenna = 1:P.Nrx
                         for tx_antenna = 1:P.Ntx
@@ -149,7 +158,8 @@ for ii = 1:P.NumberOfFrames
                     end
                     % convolutional decoder
                     rxbits_decoded = step(convDec, s_hat(:));
-                    rxbits(:, usr) = rxbits_decoded(1:end-(P.KConvDecoder-1));
+                    rxbits(:, usr) = rxbits_decoded(1:NumberOfBits);
+                    
                 end
             otherwise
                 disp('Source Encoding not supported')
