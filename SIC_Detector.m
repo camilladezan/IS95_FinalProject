@@ -22,11 +22,12 @@ Htmp = H;
 ytmp = y;
 
 for kk = 1:nTx
+  % invert the Channel matrix and multiply by the first column
   G = (Htmp'*Htmp)\Htmp';
   sTilde = (G(1,:)*ytmp).';
 
   % symbol detection
-  sHat(kk, :) = real(sTilde);
+  sHat(kk, :) = real(sTilde(:));
 
   % interference cancellation
   ytmp = ytmp - Htmp(:, 1)*sHat(kk,:);

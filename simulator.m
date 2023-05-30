@@ -10,7 +10,7 @@ RX = P.CDMAUsers;
 % define the convolutional encoder and decoder
 convEnc = comm.ConvolutionalEncoder('TerminationMethod','Terminated', 'TrellisStructure', poly2trellis(P.KConvDecoder, P.poly));
 
-L_dec = P.KConvDecoder*5 - 1;       % traceback depth
+L_dec = P.KConvDecoder*5 - 1;                                                                                                           % traceback depth
 convDec = comm.ViterbiDecoder('TerminationMethod','Terminated', 'TrellisStructure', poly2trellis(P.KConvDecoder, P.poly), 'TracebackDepth', L_dec);
 
 % Generate the spreading sequences

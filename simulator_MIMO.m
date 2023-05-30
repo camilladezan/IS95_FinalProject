@@ -53,7 +53,7 @@ for ii = 1:P.NumberOfFrames
     % multiply hadamard for the bits on each antenna
     txsymbols = zeros(P.HamLen, NumberOfEncodedBits/P.Ntx, P.Ntx);
     for tx_antenna = 1:P.Ntx
-        txsymbols(:, :, tx_antenna) = SpreadSequence(:,1:RX) * SymUsers(:, tx_antenna, :).';
+        txsymbols(:, :, tx_antenna) = SpreadSequence(:,1:RX) * squeeze(SymUsers(:, tx_antenna, :)).';
     end
 
     % definition of the PN sequence and BPSK modulation

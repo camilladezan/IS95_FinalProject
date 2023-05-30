@@ -15,9 +15,9 @@ P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 1;
+P.CDMAUsers     = 2;
 
-P.Modulation    = 1;        % 1: BPSK
+P.Modulation    = 1;        % 1: BPSK       
 P.Constellation = [1 -1];
 
 P.ChannelType   = 'Multipath';           % 'AWGN', 'Multipath', 'PassThrough'
@@ -38,7 +38,7 @@ P.Ntx = 2;
 P.Nrx = 2;
 
 % definition of the MIMO receiver
-P.MIMOdetector = 'ZF';      %ZF, SIC, MMSE
+P.MIMOdetector = 'SIC';      %ZF, SIC, MMSE
 
 BER = simulator_MIMO(P);
 
