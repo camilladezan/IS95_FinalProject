@@ -5,7 +5,7 @@ function s_hat = ZF_Detector(H, y)
 %   - computes ZF Moore-Penrose pseudo-inverse
 
 % calculate ZF Moore-Penrose pseudo-inverse
-Hi = (H'*H)\H';
+Hi = inv(H'*H)*H';
 
 % spatial ZF equalization
 y_hat = (Hi*y).';

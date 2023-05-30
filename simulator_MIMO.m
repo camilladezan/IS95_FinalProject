@@ -27,7 +27,7 @@ for ii = 1:P.NumberOfFrames
 
     ii
 
-    bits = randi([0 1], NumberOfBits, RX); % Random Data
+    bits = randi([0 1], NumberOfBits, RX);      % Random Data generation
 
     % Encode data with convolutional encoded
     NumberOfEncodedBits = P.ConvEncRate*(NumberOfBits+P.KConvDecoder-1);
@@ -44,15 +44,21 @@ for ii = 1:P.NumberOfFrames
             disp('Modulation not supported')
     end
 
-    % distribute symbols on users
-    SymUsers = symbols;
+    % Create a matrix of symbols per user and spread symbols on TX antennas 
+    SymUsers = zeros(NumberOfEncodedBits/P.Ntx, P.Ntx, RX);
+    for usr = 1:RX
+        SymUsers(:,:,usr) = reshape(symbols(:, usr), [], P.Ntx);
+    end
 
-    % multiply hadamard
-    txsymbols = SpreadSequence(:,1:RX) * SymUsers.';
+    % multiply hadamard for the bits on each antenna
+    txsymbols = zeros(P.HamLen, NumberOfEncodedBits/P.Ntx, P.Ntx);
+    for tx_antenna = 1:P.Ntx
+        txsymbols(:, :, tx_antenna) = SpreadSequence(:,1:RX) * SymUsers(:, tx_antenna, :).';
+    end
 
-    % definition of the Barker
-    NumberOfChips  = length(txsymbols(:));          % per Frame
-    PNSequence     = genPNsequence(NumberOfChips);      % -(2*step(GS)-1);
+    % definition of the PN sequence and BPSK modulation
+    NumberOfChips  = size(txsymbols, 1)*size(txsymbols, 2);          % per Frame
+    PNSequence     = -(2*genPNsequence(NumberOfChips)-1);      
 
     % Channel
     switch P.ChannelType
@@ -63,13 +69,16 @@ for ii = 1:P.NumberOfFrames
     end
 
 
-    % apply Barker code
-    waveform = txsymbols(:).*PNSequence;
+    % apply PN sequence to each antenna
+    waveform = zeros(NumberOfChips, P.Ntx);
+    for tx_antenna = 1:P.Ntx
+        txsymbols_tmp = txsymbols(:, :, tx_antenna);
+        waveform(:, tx_antenna) = txsymbols_tmp(:).*PNSequence;
+    end
 
-    % reshape to add multi RX antenna suppport
-    waveform  = reshape(waveform,NumberOfChips, 1);
-    mwaveform = repmat(waveform,[1 P.Ntx RX]);
-
+    % reshape to duplicate the transmitted symbols for all the users in the
+    % system
+    mwaveform = repmat(waveform,[1 1 RX]);
      
     % Channel
     switch P.ChannelType
@@ -158,7 +167,7 @@ for ii = 1:P.NumberOfFrames
                     end
                     % convolutional decoder
                     rxbits_decoded = step(convDec, s_hat(:));
-                    rxbits(:, usr) = rxbits_decoded(1:NumberOfBits);
+                    rxbits(:, usr) = rxbits_decoded(1:end-(P.KConvDecoder-1));
                     
                 end
             otherwise
@@ -179,12 +188,14 @@ end
 % Function to generate the PN sequence 
 function seq = genPNsequence(len)
 
-    BarkerSeq = [+1 +1 +1 +1 +1 -1 -1 +1 +1 -1 +1 -1 +1];
+    % Parameters
+    tapPositions = [23 18 0];  % Tap positions for the feedback
 
-    factor = ceil(len/length(BarkerSeq));
-    b = repmat(BarkerSeq,1,factor);
-    b = BarkerSeq.'*ones(1,factor);
-    seq = b(1:len).';
+    % Create PNSequence object
+    pnGen = comm.PNSequence('Polynomial', tapPositions, 'InitialConditions', ones(1, 23), 'SamplesPerFrame', len);
+
+    % Generate the PN sequence
+    seq = pnGen();
 
 end
 

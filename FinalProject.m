@@ -14,12 +14,12 @@ P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 1;
+P.CDMAUsers     = 4;
 
 P.Modulation    = 1;                   % 1: BPSK
 
 P.ChannelType   = 'Multipath';         % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
-P.ChannelLength = 2;                   % > 1 for multipath
+P.ChannelLength = 3;                   % > 1 for multipath
 P.CoherenceTime = 100;             
 
 P.KConvDecoder = 9;     % parameter K for the Viterbi decoder, linked to the traceback depth
@@ -30,7 +30,7 @@ P.HamLen = 64;          % Length of Hadamard Sequence
 P.SNRRange = -30:2:10; % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 3;
+P.RakeFingers = 5;
 
 BER = simulator(P);
 
@@ -38,25 +38,33 @@ simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.
 
 
 figure(1)
-semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab)
+semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab, 'LineWidth', 1.2)
 
 xlabel('SNR','FontSize',12,'FontWeight','bold');
 ylabel('BER','FontSize',12,'FontWeight','bold');
 grid minor;
 legend('-DynamicLegend');
 
-hold on 
+%hold on 
 
 %% Section to run to make comparisons plots
 
-P.ChannelLength = 6;
-BER2 = simulator(P);
-simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.CDMAUsers);
-% add BER curve to figure
-semilogy(P.SNRRange,BER2,'r.-','DisplayName',simlab)
+P.ChannelType = 'AWGN';
+P.ChannelLength = 1;
 
-P.ChannelLength = 9;
-BER3 = simulator(P);
-simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.CDMAUsers);
+BER2 = simulator(P);
+simlab = sprintf('%s - Users: %d' ,P.ChannelType,P.CDMAUsers);
 % add BER curve to figure
-semilogy(P.SNRRange,BER3,'g.-','DisplayName',simlab)
+figure(2)
+semilogy(P.SNRRange,BER2,'b.-','DisplayName',simlab, 'LineWidth', 1.2)
+
+xlabel('SNR','FontSize',12,'FontWeight','bold');
+ylabel('BER','FontSize',12,'FontWeight','bold');
+grid minor;
+legend('-DynamicLegend');
+
+% P.RakeFingers = 9;
+% BER3 = simulator(P);
+% simlab = sprintf('%s - Length: %d - Fingers: %d' ,P.ChannelType,P.ChannelLength,P.RakeFingers);
+% % add BER curve to figure
+% semilogy(P.SNRRange,BER3,'g.-','DisplayName',simlab, 'LineWidth', 1.2)

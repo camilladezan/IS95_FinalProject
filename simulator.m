@@ -48,9 +48,9 @@ for ii = 1:P.NumberOfFrames
     % multiply hadamard
     txsymbols = SpreadSequence(:,1:RX) * SymUsers;
 
-    % definition of the Barker
+    % definition of the PN sequence and BPSK modulation 
     NumberOfChips  = length(txsymbols(:));          % per Frame
-    PNSequence     = genPNsequence(NumberOfChips);      % -(2*step(GS)-1);
+    PNSequence     = -(2*genPNsequence(NumberOfChips)-1);
 
     % Channel
     switch P.ChannelType
@@ -61,10 +61,10 @@ for ii = 1:P.NumberOfFrames
     end
 
 
-    % apply Barker code
+    % apply PN sequence
     waveform = txsymbols(:).*PNSequence;
 
-    % reshape to add multi RX antenna suppport
+    % reshape to replicate the waveform for the number of users
     waveform  = reshape(waveform,1,NumberOfChips);
     mwaveform = repmat(waveform,[1 1 RX]);
 
@@ -157,11 +157,13 @@ end
 % Function to generate the PN sequence
 function seq = genPNsequence(len)
 
-    BarkerSeq = [+1 +1 +1 +1 +1 -1 -1 +1 +1 -1 +1 -1 +1];
+    % Parameters
+    tapPositions = [23 18 0];  % Tap positions for the feedback
 
-    factor = ceil(len/length(BarkerSeq));
-    b = repmat(BarkerSeq,1,factor);
-    b = BarkerSeq.'*ones(1,factor);
-    seq = b(1:len).';
+    % Create PNSequence object
+    pnGen = comm.PNSequence('Polynomial', tapPositions, 'InitialConditions', ones(1, 23), 'SamplesPerFrame', len);
+
+    % Generate the PN sequence
+    seq = pnGen();
 
 end

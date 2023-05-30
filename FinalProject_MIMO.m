@@ -12,16 +12,16 @@ close all, clear, clc
 
 % Parameters 
 P.NumberOfFrames      = 1000;
-P.NumberOfSymbols     = 125;
+P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 4;
+P.CDMAUsers     = 1;
 
 P.Modulation    = 1;        % 1: BPSK
 P.Constellation = [1 -1];
 
 P.ChannelType   = 'Multipath';           % 'AWGN', 'Multipath', 'PassThrough'
-P.ChannelLength = 1;                % increase it for multipath
+P.ChannelLength = 3;                % increase it for multipath
 
 P.KConvDecoder = 9;         % parameter K for the Viterbi decoder, linked to the traceback depth
 P.ConvEncRate = 2;          % inverse of the rate of the convolutional encoder
@@ -31,7 +31,7 @@ P.HamLen = 64;              % Length of Hadamard Sequence
 P.SNRRange = -30:2:10;      % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 3;
+P.RakeFingers = 4;
 
 % definition of number of transmitting and receiving antennas
 P.Ntx = 2; 
@@ -42,7 +42,7 @@ P.MIMOdetector = 'ZF';      %ZF, SIC, MMSE
 
 BER = simulator_MIMO(P);
 
-simlab = sprintf('%s - Length: %d - Users: %d' ,P.ChannelType,P.ChannelLength,P.CDMAUsers);
+simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
 
 figure(1)
 semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab)
@@ -56,6 +56,15 @@ legend('-DynamicLegend');
 %% 
 hold on 
 
-P.MIMOdetector = 'MMSE';
+P.Ntx = 2;
+P.Nrx = 3;
 BER2 = simulator_MIMO(P);
+simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
 semilogy(P.SNRRange,BER2,'r.-','DisplayName',simlab)
+
+
+P.Ntx = 4;
+P.Nrx = 4;
+BER4 = simulator_MIMO(P);
+simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
+semilogy(P.SNRRange,BER4,'g.-','DisplayName',simlab)

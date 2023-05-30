@@ -12,7 +12,7 @@ function sHat = SIC_Detector(H, y)
 % Copyright (c) 2012 TCL.
 
 
-% noise and channel dimensions extraction
+% % noise and channel dimensions extraction
 nTx = size(H,2);
 n_sym = length(y(1,:));
 
@@ -21,14 +21,16 @@ sHat = zeros(nTx, n_sym);
 Htmp = H;
 ytmp = y;
 
-for kk = nTx:-1:1
+for kk = 1:nTx
   G = (Htmp'*Htmp)\Htmp';
-  sTilde = G(kk,:)*ytmp;
+  sTilde = (G(1,:)*ytmp).';
 
+  % symbol detection
   sHat(kk, :) = real(sTilde);
 
-  ytmp = ytmp - Htmp(:, kk)*sHat(kk);
-  Htmp = Htmp(:,1:kk-1);
+  % interference cancellation
+  ytmp = ytmp - Htmp(:, 1)*sHat(kk,:);
+  Htmp = Htmp(:,2:end);
 end
 
 
