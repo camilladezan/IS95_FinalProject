@@ -161,7 +161,6 @@ for ii = 1:P.NumberOfFrames
                             Pn = 1/(SeqLen*SNRlin);
                             H_user = squeeze(H_MIMO(:,:,usr));
                             s_hat = MMSE_Detector_Biased(H_user, rx_symbols, Pn);
-                            
                         otherwise
                             disp('Receiver not supported')
                     end

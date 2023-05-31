@@ -14,12 +14,12 @@ P.NumberOfFrames      = 1000;
 P.NumberOfSymbols     = 172;
 
 P.AccessType = 'CDMA'; 
-P.CDMAUsers     = 4;
+P.CDMAUsers     = 2;
 
 P.Modulation    = 1;                   % 1: BPSK
 
-P.ChannelType   = 'Multipath';         % 'AWGN', 'Fading', 'Multipath', 'PassThrough'
-P.ChannelLength = 3;                   % > 1 for multipath
+P.ChannelType   = 'AWGN';         % 'AWGN', 'Multipath', 'PassThrough'
+P.ChannelLength = 1;                   % > 1 for multipath
 P.CoherenceTime = 100;             
 
 P.KConvDecoder = 9;     % parameter K for the Viterbi decoder, linked to the traceback depth
@@ -30,7 +30,7 @@ P.HamLen = 64;          % Length of Hadamard Sequence
 P.SNRRange = -30:2:10; % SNR Range to simulate in dB
 
 P.ReceiverType  = 'Rake';
-P.RakeFingers = 5;
+P.RakeFingers = 2;
 
 BER = simulator(P);
 

@@ -34,5 +34,5 @@ for kk = 1:nTx
   Htmp = Htmp(:,2:end);
 end
 
-
+sHat = sHat.';
 end

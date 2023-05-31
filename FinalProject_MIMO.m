@@ -38,15 +38,15 @@ P.Ntx = 2;
 P.Nrx = 2;
 
 % definition of the MIMO receiver
-P.MIMOdetector = 'SIC';      %ZF, SIC, MMSE
+P.MIMOdetector = 'ZF';      %ZF, SIC, MMSE
 
 BER = simulator_MIMO(P);
 
-simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
+simlab = sprintf('%s - N_txN_r: %dx%d' ,P.MIMOdetector, P.Ntx, P.Nrx);
 
 figure(1)
 semilogy(P.SNRRange,BER,'b.-','DisplayName',simlab)
-
+title('Detectors comparison')
 xlabel('SNR','FontSize',12,'FontWeight','bold');
 ylabel('BER','FontSize',12,'FontWeight','bold');
 %xlim([min(P.SNRRange) max(P.SNRRange)]);
@@ -56,15 +56,13 @@ legend('-DynamicLegend');
 %% 
 hold on 
 
-P.Ntx = 2;
-P.Nrx = 3;
+P.MIMOdetector = 'MMSE';
 BER2 = simulator_MIMO(P);
-simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
+simlab = sprintf('%s - N_txN_r: %dx%d' ,P.MIMOdetector, P.Ntx, P.Nrx);
 semilogy(P.SNRRange,BER2,'r.-','DisplayName',simlab)
 
 
-P.Ntx = 4;
-P.Nrx = 4;
-BER4 = simulator_MIMO(P);
-simlab = sprintf('%s - N_txN_r: %dx%d - Users: %d' ,P.ChannelType, P.Ntx, P.Nrx, P.CDMAUsers);
-semilogy(P.SNRRange,BER4,'g.-','DisplayName',simlab)
+P.MIMOdetector = 'SIC';
+BER3 = simulator_MIMO(P);
+simlab = sprintf('%s - N_txN_r: %dx%d' ,P.MIMOdetector, P.Ntx, P.Nrx);
+semilogy(P.SNRRange,BER3,'g.-','DisplayName',simlab)

@@ -74,8 +74,6 @@ for ii = 1:P.NumberOfFrames
             himp = ones(RX,1);
         case 'AWGN'
             himp = ones(RX,1);
-        case 'Fading'
-            himp = channel(RX,NumberOfChips,1,P.CoherenceTime,1);
         case 'Multipath'
             himp = sqrt(1/2)* ( randn(RX,P.ChannelLength) + 1i * randn(RX,P.ChannelLength) );
         otherwise
@@ -98,8 +96,6 @@ for ii = 1:P.NumberOfFrames
                 y = mwaveform;
             case 'AWGN'
                 y = mwaveform + noise;
-            case 'Fading'
-                y = mwaveform.*himp + noise;
             case 'Multipath'
                 y = zeros(1,NumberOfChips+P.ChannelLength-1,RX);
                 for i = 1:RX
@@ -122,18 +118,8 @@ for ii = 1:P.NumberOfFrames
                         rx_symb_finger(finger,:) = SpreadSequence(:,usr).'*rx_symb;
                     end
 
-                    switch P.ChannelType 
-                        case 'Fading'
-                            himp = squeeze(himp);
-                    end
-
                     mrc = 1/norm(himp(usr,:))^2*conj(himp(usr,1:finger))*rx_symb_finger;
                     mrc = real(mrc);
-
-                    switch P.ChannelType 
-                        case 'Fading'
-                            himp = reshape(himp, 1, size(himp, 1), size(himp, 2));
-                    end
 
                     % convolutional decoder
                     rxbits_encoded = step(convDec, mrc');
