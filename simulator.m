@@ -144,10 +144,10 @@ end
 function seq = genPNsequence(len)
 
     % Parameters
-    tapPositions = [23 18 0];  % Tap positions for the feedback
+    tapPositions = [42 41 20 19 0];  % Tap positions for the feedback
 
     % Create PNSequence object
-    pnGen = comm.PNSequence('Polynomial', tapPositions, 'InitialConditions', ones(1, 23), 'SamplesPerFrame', len);
+    pnGen = comm.PNSequence('Polynomial', tapPositions, 'InitialConditions', ones(1, 42), 'SamplesPerFrame', len);
 
     % Generate the PN sequence
     seq = pnGen();
