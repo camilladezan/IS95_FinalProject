@@ -53,7 +53,7 @@ ylabel('BER','FontSize',12,'FontWeight','bold');
 grid minor;
 legend('-DynamicLegend');
 
-%% 
+%% Code to make comparison plots
 hold on 
 
 P.MIMOdetector = 'MMSE';
